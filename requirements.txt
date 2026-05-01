@@ -42,7 +42,7 @@ shortuuid
 passlib
 bcrypt
 pydantic-settings
-PyJWT
+python-jose[cryptography]
 Faker
 pytest
 pylint

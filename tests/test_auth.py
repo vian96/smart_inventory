@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from jose import jwt
 from sqlalchemy.orm import Session
 
-from auth import (
+from app.auth import (
     ALGORITHM,
     SECRET_KEY,
     authenticate_user,
@@ -14,8 +14,8 @@ from auth import (
     get_password_hash,
     verify_password,
 )
-from database import Base, _inmemory_session_local, inmemory_engine
-from models import User
+from app.database import Base, _inmemory_session_local, inmemory_engine
+from app.models import User
 
 # --- Настройка тестовой БД ---
 

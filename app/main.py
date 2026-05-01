@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
 
-from auth import (
+from .auth import (
     authenticate_user,
     create_access_token,
     get_current_active_user,
@@ -13,10 +13,10 @@ from auth import (
 )
 
 # Импорты локальных модулей проекта
-from database import Base, engine, get_db
-from logic import calculate_optimal_restock
-from models import Category, Product, User
-from schemas import (
+from .database import Base, engine, get_db
+from .logic import calculate_optimal_restock
+from .models import Category, Product, User
+from .schemas import (
     CategoryCreate,
     CategoryRead,
     ProductCreate,

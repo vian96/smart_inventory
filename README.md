@@ -37,7 +37,7 @@ pip install -r requirements.txt
 
 4. Запустите сервер:
 ```
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 ```
 
 5. Откройте документацию API (Swagger UI): Перейдите в браузере по адресу: http://127.0.0.1:8000/docs
@@ -46,14 +46,14 @@ uvicorn main:app --reload
 
 Запуск автоматических тестов с проверкой покрытия:
 ```
-pytest --cov=. --cov-report=term-missing
+pytest tests/ --cov=app --cov-report=term-missing
 ```
 
 Проверка качества кода линтером Pylint:
 ```
-pylint *.py
-ruff check *.py
-ruff format *.py
+pylint app
+ruff check app
+ruff format app
 ```
 
 ## Информация об авторе

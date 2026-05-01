@@ -1,5 +1,6 @@
-from typing import List, Dict, Any
-from models import Product
+from typing import Any, Dict, List
+
+from .models import Product
 
 
 def calculate_optimal_restock(products: List[Product], budget: float) -> List[Dict[str, Any]]:

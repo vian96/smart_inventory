@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from database import Base, get_db, get_inmemory_db, inmemory_engine
-from main import app
+from app.database import Base, get_db, get_inmemory_db, inmemory_engine
+from app.main import app
 
 
 app.dependency_overrides[get_db] = get_inmemory_db

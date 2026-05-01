@@ -1,2 +1,11 @@
 [tool.ruff]
 line-length = 100
+
+[tool.pylint.messages_control]
+disable = [
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "missing-module-docstring",
+    "too-few-public-methods",
+    "redefined-outer-name",
+]

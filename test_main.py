@@ -4,8 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from main import app
 from database import Base, get_db
+from main import app
 
 # Настройка тестовой БД (SQLite в памяти)
 SQLALCHEMY_DATABASE_URL = "sqlite://"
@@ -15,11 +15,11 @@ engine = create_engine(
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+_testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def override_get_db():
-    db = TestingSessionLocal()
+    db = _testing_session_local()
     try:
         yield db
     finally:

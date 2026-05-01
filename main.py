@@ -1,30 +1,31 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Query
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session, joinedload
 from typing import List
 
+from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session, joinedload
+
+from auth import (
+    authenticate_user,
+    create_access_token,
+    get_current_active_user,
+    get_current_user,
+    get_password_hash,
+)
+
 # Импорты локальных модулей проекта
-from database import engine, Base, get_db
-from models import User, Category, Product
+from database import Base, engine, get_db
+from logic import calculate_optimal_restock
+from models import Category, Product, User
 from schemas import (
-    UserCreate,
-    UserRead,
-    Token,
     CategoryCreate,
     CategoryRead,
     ProductCreate,
     ProductRead,
     RestockRecommendation,
+    Token,
+    UserCreate,
+    UserRead,
 )
-from auth import (
-    authenticate_user,
-    create_access_token,
-    get_password_hash,
-    get_current_user,
-    get_current_active_user,
-)
-from logic import calculate_optimal_restock
-
 
 # Автоматическое создание таблиц при запуске
 Base.metadata.create_all(bind=engine)
@@ -96,13 +97,12 @@ def update_category(category_id: int, category_data: CategoryCreate, db: Session
 
 
 @app.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_category(category_id: int, db: Session = Depends(get_db)):
+def delete_category(category_id: int, db: Session = Depends(get_db)) -> None:
     db_category = db.query(Category).filter(Category.id == category_id).first()
     if not db_category:
         raise HTTPException(status_code=404, detail="Category not found")
     db.delete(db_category)
     db.commit()
-    return None
 
 
 # --- PRODUCT CRUD ---
@@ -153,14 +153,13 @@ def delete_product(
     product_id: int,
     db: Session = Depends(get_db),
     _current_user: User = Depends(get_current_user),  # Требуется авторизация
-):
+) -> None:
     db_product = db.query(Product).filter(Product.id == product_id).first()
     if not db_product:
         raise HTTPException(status_code=404, detail="Product not found")
 
     db.delete(db_product)
     db.commit()
-    return None
 
 
 @app.post("/inventory/optimize", response_model=List[RestockRecommendation])

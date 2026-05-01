@@ -166,7 +166,7 @@ def delete_product(
 def optimize_inventory(
     budget: float = Query(..., gt=0),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user),
+    _current_user: User = Depends(get_current_active_user),
 ):
     products = db.query(Product).options(joinedload(Product.category)).all()
     return calculate_optimal_restock(products, budget)

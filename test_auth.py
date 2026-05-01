@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from fastapi import HTTPException, status
 from jose import jwt
@@ -101,9 +103,6 @@ async def test_get_current_user_user_removed(db_session: Session):
 @pytest.mark.asyncio
 async def test_get_current_user_expired_token(db_session: Session, test_user: User):
     """Негативный кейс: срок действия токена истек."""
-    # Создаем токен с отрицательным временем жизни
-    from datetime import timedelta
-
     token = create_access_token(
         data={"sub": test_user.username}, expires_delta=timedelta(minutes=-1)
     )

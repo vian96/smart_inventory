@@ -1,40 +1,19 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
-from database import Base, get_db
+from database import Base, get_db, get_inmemory_db, inmemory_engine
 from main import app
 
-# Настройка тестовой БД (SQLite в памяти)
-SQLALCHEMY_DATABASE_URL = "sqlite://"
 
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-_testing_session_local = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-def override_get_db():
-    db = _testing_session_local()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_db] = get_inmemory_db
 client = TestClient(app)
 
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_database():
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=inmemory_engine)
     yield
-    Base.metadata.drop_all(bind=engine)
+    Base.metadata.drop_all(bind=inmemory_engine)
 
 
 @pytest.fixture
@@ -144,3 +123,114 @@ def test_inventory_optimize(auth_token: str):
     if len(recommendations) > 0:
         assert "product_id" in recommendations[0]
         assert "restock_quantity" in recommendations[0]
+
+
+def test_update_category(auth_token: str):
+    headers = {"Authorization": f"Bearer {auth_token}"}
+
+    # Сначала создаем
+    create_resp = client.post(
+        "/categories", json={"name": "Old Name", "risk_factor": 0.1}, headers=headers
+    )
+    category_id = create_resp.json()["id"]
+
+    # Обновляем
+    update_data = {"name": "New Name", "risk_factor": 0.8}
+    response = client.put(f"/categories/{category_id}", json=update_data, headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["name"] == "New Name"
+    assert response.json()["risk_factor"] == 0.8
+
+    # Тест на 404
+    response_404 = client.put("/categories/9999", json=update_data, headers=headers)
+    assert response_404.status_code == 404
+
+
+def test_delete_category(auth_token: str):
+    headers = {"Authorization": f"Bearer {auth_token}"}
+
+    cat_resp = client.post(
+        "/categories", json={"name": "To Be Deleted", "risk_factor": 0.5}, headers=headers
+    )
+    category_id = cat_resp.json()["id"]
+
+    # Удаляем
+    delete_resp = client.delete(f"/categories/{category_id}", headers=headers)
+    assert delete_resp.status_code == 204
+
+    # Проверяем, что удалено (404 при повторном удалении или получении, если бы был эндпоинт get)
+    delete_again = client.delete(f"/categories/{category_id}", headers=headers)
+    assert delete_again.status_code == 404
+
+
+def test_get_product(auth_token: str):
+    headers = {"Authorization": f"Bearer {auth_token}"}
+
+    # Подготовка данных (категория + продукт)
+    cat_resp = client.post(
+        "/categories", json={"name": "FetchTest", "risk_factor": 0.5}, headers=headers
+    )
+    cat_id = cat_resp.json()["id"]
+
+    prod_payload = {
+        "name": "Specific Product",
+        "quantity": 10,
+        "min_stock": 5,
+        "price": 100.0,
+        "category_id": cat_id,
+    }
+    create_prod = client.post("/products", json=prod_payload, headers=headers)
+    product_id = create_prod.json()["id"]
+
+    # Тест получения
+    response = client.get(f"/products/{product_id}")
+    assert response.status_code == 200
+    assert response.json()["name"] == "Specific Product"
+
+    # Тест на 404
+    response_404 = client.get("/products/99999")
+    assert response_404.status_code == 404
+
+
+def test_update_product(auth_token: str):
+    headers = {"Authorization": f"Bearer {auth_token}"}
+
+    # Подготовка
+    cat_resp = client.post(
+        "/categories", json={"name": "UpdateProdTest", "risk_factor": 0.5}, headers=headers
+    )
+    cat_id = cat_resp.json()["id"]
+
+    create_prod = client.post(
+        "/products",
+        json={
+            "name": "Before Update",
+            "quantity": 1,
+            "min_stock": 1,
+            "price": 1.0,
+            "category_id": cat_id,
+        },
+        headers=headers,
+    )
+    product_id = create_prod.json()["id"]
+
+    # Обновление
+    update_payload = {
+        "name": "After Update",
+        "quantity": 50,
+        "min_stock": 20,
+        "price": 99.99,
+        "category_id": cat_id,
+    }
+    response = client.put(f"/products/{product_id}", json=update_payload, headers=headers)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "After Update"
+    assert data["quantity"] == 50
+    assert data["price"] == 99.99
+
+    # Тест на 404
+    response_404 = client.put("/products/99999", json=update_payload, headers=headers)
+    assert response_404.status_code == 404

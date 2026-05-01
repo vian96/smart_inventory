@@ -45,4 +45,6 @@ pydantic-settings
 python-jose[cryptography]
 Faker
 pytest
+pytest-asyncio
+pytest-cov
 pylint

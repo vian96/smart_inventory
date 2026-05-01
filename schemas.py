@@ -73,3 +73,13 @@ class ProductRead(ProductBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RestockRecommendation(BaseModel):
+    product_id: int
+    product_name: str
+    category_name: str
+    restock_quantity: int
+    estimated_cost: float
+    priority_score: float
+    model_config = ConfigDict(from_attributes=True)

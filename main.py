@@ -1,10 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Query
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 # Импорты локальных модулей проекта
-from database import engine, SessionLocal, Base
+from database import engine, Base, get_db
 from models import User, Category, Product
 from schemas import (
     UserCreate,
@@ -14,22 +14,22 @@ from schemas import (
     CategoryRead,
     ProductCreate,
     ProductRead,
+    RestockRecommendation,
 )
-from auth import authenticate_user, create_access_token, get_password_hash, get_current_user
+from auth import (
+    authenticate_user,
+    create_access_token,
+    get_password_hash,
+    get_current_user,
+    get_current_active_user,
+)
+from logic import calculate_optimal_restock
+
 
 # Автоматическое создание таблиц при запуске
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Smart Inventory Optimizer API")
-
-
-# Dependency для получения сессии БД
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 # --- AUTH ENDPOINTS ---
@@ -159,3 +159,13 @@ def delete_product(
     db.delete(db_product)
     db.commit()
     return None
+
+
+@app.post("/inventory/optimize", response_model=List[RestockRecommendation])
+def optimize_inventory(
+    budget: float = Query(..., gt=0),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    products = db.query(Product).options(joinedload(Product.category)).all()
+    return calculate_optimal_restock(products, budget)

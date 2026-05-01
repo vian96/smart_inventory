@@ -81,3 +81,16 @@ async def get_current_active_user(current_user: Annotated[User, Depends(get_curr
     В данной версии возвращает пользователя напрямую.
     """
     return current_user
+
+
+def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
+    """
+    Проверяет существование пользователя и валидность пароля.
+    Возвращает объект User при успехе, иначе None.
+    """
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        return None
+    if not verify_password(password, user.hashed_password):
+        return None
+    return user
